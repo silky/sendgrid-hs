@@ -2,6 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+
 module Network.Sendgrid.Api
   ( Authentication(..)
   , EmailMessage(..)
@@ -24,8 +25,10 @@ import           Data.List                   (partition)
 import           Data.Maybe                  (fromMaybe)
 import           Data.Monoid                 ((<>))
 import qualified Data.Text                   as T
-import           Network.HTTP.Conduit
-import           Network.Sendgrid.Utils      (urlEncode)
+import           Network.HTTP.Conduit hiding (httpLbs)
+import           Network.HTTP.Simple        (setRequestManager, httpLbs)
+import           Network.HTTP.Client        (defaultManagerSettings, newManager)
+import           Network.Sendgrid.Utils     (urlEncode)
 
 -- | The base url for the Sendgrid API
 --
@@ -112,7 +115,11 @@ makeRequest method url body =
               , requestHeaders = [ ("content-type", "application/x-www-form-urlencoded") ]
               , requestBody = RequestBodyBS $ rBody
               }
-    response <- withManager $ httpLbs req
+    manager <- liftIO $ newManager defaultManagerSettings
+    -- response <- withManager $ httpLbs req
+    let request = setRequestManager manager req
+    -- response <- newManager tlsManagerSettings $ httpLbs req
+    response <- httpLbs req
     return $ responseBody response
 
 -- | Request helpers
